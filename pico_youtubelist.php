@@ -70,6 +70,7 @@ class Pico_YoutubeList {
         $page .= sprintf("  Date: %s\n", $j["snippet"]["publishedAt"]);
         $page .= sprintf("  Description: %s\n", str_replace(array("\n", "\r"), " ", $j["snippet"]["localized"]["description"]));
         $page .= sprintf("  URL: %s\n", $base_playlist . $j["id"]);
+        $page .= sprintf("  Tag: %s\n", "embed");
         $page .= sprintf("  Image: %s\n", $j["snippet"]["thumbnails"]["medium"]["url"]);
         $page .= "*/\n";
         $page .= $j["snippet"]["localized"]["description"];
