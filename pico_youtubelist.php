@@ -48,6 +48,7 @@ class Pico_YoutubeList {
     );
 		$list_url = "https://www.googleapis.com/youtube/v3/playlists?" . http_build_query($query);
 		$base_playlist = "https://www.youtube.com/playlist?list=";
+		$base_embed = "https://www.youtube.com/embed/videoseries?list=";
 
     /* テキストファイル作成処理 */
     try{
@@ -73,7 +74,7 @@ class Pico_YoutubeList {
         $page .= sprintf("  Tag: %s\n", "embed");
         $page .= sprintf("  Image: %s\n", $j["snippet"]["thumbnails"]["medium"]["url"]);
         $page .= "*/\n";
-        $page .= $j["snippet"]["localized"]["description"];
+        $page .= sprintf("<iframe width='560' height='315' src='%s%s' frameborder='0' allowfullscreen></iframe>", $base_embed, $j["id"]);
 
         file_put_contents($cdir . $j["id"] . ".md", $page);
       }
