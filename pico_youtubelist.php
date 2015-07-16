@@ -79,13 +79,8 @@ class Pico_YoutubeList {
         file_put_contents($cdir . $j["id"] . ".md", $page);
       }
     }catch(Exception $e){
-      $page = "/*\n";
-      $page .= sprintf("  Title: %s\n", "Youtube Access Error");
-      $page .= sprintf("  Description: %s\n", "Youtube Access Error");
-      $page .= "*/\n";
-      $page .= "Githubに接続できませんでした。\n";
-      $page .= $e->getMessage();
-      file_put_contents($cdir . "error.md", $page);
+      echo "Youtube Access Error\n";
+      echo $e->getMessage() . "\n";
     }
 	}
 
