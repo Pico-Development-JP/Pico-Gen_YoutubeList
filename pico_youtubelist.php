@@ -63,7 +63,8 @@ class Pico_YoutubeList {
       empty($playlist["directory"])){
       return;
     }
-    $this->loadresource($apikey, $playlist["playlist"], $playlist["directory"], STATE_GETPLAYLISTITEM);
+    $this->loadresource($apikey, $playlist["playlist"], $playlist["directory"], 
+      !empty($playlist["exclude"]) ? $playlist["exclude"] : "", STATE_GETPLAYLISTITEM);
   }
   
   private function loadchannel($apikey, $channel) {
@@ -72,14 +73,16 @@ class Pico_YoutubeList {
       empty($channel["directory"])){
       return;
     }
-    $this->loadresource($apikey, $channel["channel"], $channel["directory"], STATE_GETPLAYLIST);
+    $this->loadresource($apikey, $channel["channel"], $channel["directory"], 
+      !empty($channel["exclude"]) ? $channel["exclude"] : "", STATE_GETPLAYLIST);
   }
 
-  private function loadresource($apikey, $id, $directory, $state) {
+  private function loadresource($apikey, $id, $directory, $exclude, $state) {
     // 初期処理
     $cdir = ROOT_DIR . $this->settings["content_dir"] . $directory;
     $cachedir = LOG_DIR . "youtube/";
     $cachefile = $cachedir . $id . ".json";
+    $excludes = explode(",", $exclude);
     if(!file_exists($cachedir)){
       mkdir($cachedir, "0500", true);
     }
@@ -109,6 +112,9 @@ class Pico_YoutubeList {
         throw new Exception($json['error']["message"]);
       }
       foreach($json["items"] as $j){
+        if(in_array($j["id"], $excludes)){
+          continue;
+        }
         $s = $j["snippet"];
         if($state == STATE_GETPLAYLISTITEM) {
           $url = sprintf(URL_MOVIE, $s["resourceId"]["videoId"], $s["position"], $s["playlistId"]);
