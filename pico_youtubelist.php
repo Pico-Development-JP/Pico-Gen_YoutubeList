@@ -12,20 +12,49 @@ class Pico_YoutubeList {
   
   private $settings;
   
+  function __construct(){
+    define("API_GETPLAYLISTITEM", "https://www.googleapis.com/youtube/v3/playlistItems");
+    define("API_GETPLAYLISTS", "https://www.googleapis.com/youtube/v3/playlists");
+    define("URL_PLAYLIST", "https://www.youtube.com/playlist?list=%s");
+    define("URL_MOVIE", "https://www.youtube.com/watch?v=%s&index=%d&list=%s");
+    define("URL_EMBED_PLAYLIST", "https://www.youtube.com/embed/videoseries?list=%s");
+    define("URL_EMBED_MOVIE", "https://www.youtube.com/embed/%s?list=%s");
+    define("STATE_GETPLAYLIST", "playlists");
+    define("STATE_GETPLAYLISTITEM", "playlistitems");
+    define("EMBEDCODE", "<iframe width='560' height='315' src='%s' frameborder='0' allowfullscreen></iframe>");
+  }
+  
   public function run($settings) {
     if(empty($settings["youtube"]) || 
-      empty($settings["youtube"]["apikey"]) ||
-      empty($settings["youtube"]["channels"])) {
+      empty($settings["youtube"]["apikey"])) {
       return;
     }
     $this->settings = $settings;
     
     $apikey = $settings["youtube"]["apikey"];
-    $channels = $settings["youtube"]["channels"];
+    $channels = !empty($settings["youtube"]["channels"]) ? $settings["youtube"]["channels"] : NULL;
+    $playlists = !empty($settings["youtube"]["playlists"]) ? $settings["youtube"]["playlists"] : NULL;
 
-    foreach($channels as $channel){
-      $this->loadchannel($apikey, $channel);
+    if(!empty($channels)){
+      foreach($channels as $channel){
+        $this->loadchannel($apikey, $channel);
+      }
     }
+    
+    if(!empty($playlists)){
+      foreach($playlists as $playlist){
+        $this->loadplaylist($apikey, $playlist);
+      }
+    }
+  }
+  
+  private function loadplaylist($apikey, $playlist) {
+    if(empty($playlist) ||
+      empty($playlist["playlist"]) ||
+      empty($playlist["directory"])){
+      return;
+    }
+    $this->loadresource($apikey, $playlist["playlist"], $playlist["directory"], STATE_GETPLAYLISTITEM);
   }
   
   private function loadchannel($apikey, $channel) {
@@ -34,27 +63,37 @@ class Pico_YoutubeList {
       empty($channel["directory"])){
       return;
     }
-    $cdir = ROOT_DIR . $this->settings["content_dir"] . $channel["directory"];
+    $this->loadresource($apikey, $channel["channel"], $channel["directory"], STATE_GETPLAYLIST);
+  }
+
+  private function loadresource($apikey, $id, $directory, $state) {
+    // 初期処理
+    $cdir = ROOT_DIR . $this->settings["content_dir"] . $directory;
     $cachedir = LOG_DIR . "youtube/";
-    $cachefile = $cachedir . $channel["channel"] . ".json";
+    $cachefile = $cachedir . $id . ".json";
     if(!file_exists($cachedir)){
       mkdir($cachedir, "0500", true);
     }
     $query = array(
       "part" => "snippet,status",
-      "channelId" => $channel["channel"],
       "maxResults" => 50,
       "key" => $apikey,
     );
-		$list_url = "https://www.googleapis.com/youtube/v3/playlists?" . http_build_query($query);
-		$base_playlist = "https://www.youtube.com/playlist?list=";
-		$base_embed = "https://www.youtube.com/embed/videoseries?list=";
+    if($state == STATE_GETPLAYLISTITEM) {
+      // プレイリストアイテム取得時の独自処理
+      $query["playlistId"] = $id;
+      $apiurl = API_GETPLAYLISTITEM;
+    }else if($state == STATE_GETPLAYLIST) {
+      // チャンネルプレイリスト取得時の独自処理
+      $query["channelId"] = $id;
+      $apiurl = API_GETPLAYLISTS;
+    }
 
     /* テキストファイル作成処理 */
     try{
       $responce;
       // まずはJSON読み込み
-      $content = $this->curl_getcontents($list_url, $responce);
+      $content = $this->curl_getcontents($apiurl . "?" . http_build_query($query), $responce);
       file_put_contents($cachefile, $content);
       $json = json_decode($content, true);
       if($responce['http_code'] >= 300){
@@ -62,19 +101,35 @@ class Pico_YoutubeList {
       }
       $this->removeBeforeScanned($cdir);
       foreach($json["items"] as $j){
+        $s = $j["snippet"];
+        if($state == STATE_GETPLAYLISTITEM) {
+          $url = sprintf(URL_MOVIE, $s["resourceId"]["videoId"], $s["position"], $s["playlistId"]);
+          $iframeurl =  sprintf(URL_EMBED_MOVIE, $s["resourceId"]["videoId"], $s["playlistId"]);
+          $title = $s["title"];
+          $description = $s["description"];
+        }else if($state == STATE_GETPLAYLIST) {
+          $url = sprintf(URL_PLAYLIST, $j["id"]);
+          $iframeurl =  sprintf(URL_EMBED_PLAYLIST, $j["id"]);
+          $title = $s["localized"]["title"];
+          $description = $s["localized"]["description"];
+        }else{
+          throw new Exception("Unsupported State");
+        }
+        
+        $iframecode = sprintf(EMBEDCODE, $iframeurl);
         // 非Publicなもの、説明文が空なものは公開しない
-        if($j["status"]["privacyStatus"] != "public" || empty($j["snippet"]["localized"]["description"])) continue;
+        if($j["status"]["privacyStatus"] != "public" || empty($description)) continue;
         // mdファイル作成
         $page = "/*\n";
-        $page .= sprintf("  Title: %s\n", $j["snippet"]["localized"]["title"]);
-        $page .= sprintf("  Author: %s\n", $j["snippet"]["channelTitle"]);
-        $page .= sprintf("  Date: %s\n", $j["snippet"]["publishedAt"]);
-        $page .= sprintf("  Description: %s\n", str_replace(array("\n", "\r"), " ", $j["snippet"]["localized"]["description"]));
-        $page .= sprintf("  URL: %s\n", $base_playlist . $j["id"]);
+        $page .= sprintf("  Title: %s\n", $title);
+        $page .= sprintf("  Author: %s\n", $s["channelTitle"]);
+        $page .= sprintf("  Date: %s\n", $s["publishedAt"]);
+        $page .= sprintf("  Description: %s\n", str_replace(array("\n", "\r"), " ", $description));
+        $page .= sprintf("  URL: %s\n", $url);
         $page .= sprintf("  Tag: %s\n", "embed");
-        $page .= sprintf("  Image: %s\n", $j["snippet"]["thumbnails"]["medium"]["url"]);
+        $page .= sprintf("  Image: %s\n", $s["thumbnails"]["medium"]["url"]);
         $page .= "*/\n";
-        $page .= sprintf("<iframe width='560' height='315' src='%s%s' frameborder='0' allowfullscreen></iframe>", $base_embed, $j["id"]);
+        $page .= $iframecode;
 
         file_put_contents($cdir . $j["id"] . ".md", $page);
       }
@@ -98,10 +153,10 @@ class Pico_YoutubeList {
     curl_setopt_array($ch, array(
       CURLOPT_URL => $url,
       CURLOPT_TIMEOUT => 3,
-    	CURLOPT_CUSTOMREQUEST => 'GET',
-    	CURLOPT_SSL_VERIFYPEER => FALSE,
-    	CURLOPT_RETURNTRANSFER => TRUE,
-    	CURLOPT_USERAGENT => "Pico"));
+      CURLOPT_CUSTOMREQUEST => 'GET',
+      CURLOPT_SSL_VERIFYPEER => FALSE,
+      CURLOPT_RETURNTRANSFER => TRUE,
+      CURLOPT_USERAGENT => "Pico"));
 
     $content = curl_exec($ch);
     if(!curl_errno($ch)) {
