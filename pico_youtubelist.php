@@ -177,6 +177,9 @@ class Pico_YoutubeList {
    *
    */
   private function removeBeforeScanned($cdir){
+    if(!file_exists($cdir)){
+      mkdir($cdir, "0500", true);
+    }
     if($handle = opendir($cdir)){
       while(false !== ($file = readdir($handle))){
         if(!is_dir($file) && $file != "index.md"){
