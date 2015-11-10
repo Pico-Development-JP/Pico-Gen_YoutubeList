@@ -35,6 +35,15 @@ class Pico_YoutubeList {
     $channels = !empty($settings["youtube"]["channels"]) ? $settings["youtube"]["channels"] : NULL;
     $playlists = !empty($settings["youtube"]["playlists"]) ? $settings["youtube"]["playlists"] : NULL;
 
+    // 動画フォルダのクリーン処理
+    $l = array();
+    $l = !empty($channels) ? array_merge($l, $channels) : $l;
+    $l = !empty($playlists) ? array_merge($l, $playlists) : $l;
+    foreach($l as $li){
+      $this->removeBeforeScanned(ROOT_DIR . $this->settings["content_dir"] . $li["directory"]);
+    }
+
+    // 動画の読み込み処理
     if(!empty($channels)){
       foreach($channels as $channel){
         $this->loadchannel($apikey, $channel);
@@ -99,7 +108,6 @@ class Pico_YoutubeList {
       if($responce['http_code'] >= 300){
         throw new Exception($json['error']["message"]);
       }
-      $this->removeBeforeScanned($cdir);
       foreach($json["items"] as $j){
         $s = $j["snippet"];
         if($state == STATE_GETPLAYLISTITEM) {
