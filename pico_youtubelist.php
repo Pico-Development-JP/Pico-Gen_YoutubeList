@@ -63,7 +63,8 @@ class Pico_YoutubeList {
       empty($playlist["directory"])){
       return;
     }
-    $this->loadresource($apikey, $playlist["playlist"], $playlist["directory"], 
+    echo ">> playlist loading\n";
+    $this->loadresource($apikey, $playlist["playlist"], $playlist["directory"],
       !empty($playlist["exclude"]) ? $playlist["exclude"] : "", STATE_GETPLAYLISTITEM);
   }
   
@@ -73,11 +74,13 @@ class Pico_YoutubeList {
       empty($channel["directory"])){
       return;
     }
-    $this->loadresource($apikey, $channel["channel"], $channel["directory"], 
+    echo ">> channel loading\n";
+    $this->loadresource($apikey, $channel["channel"], $channel["directory"],
       !empty($channel["exclude"]) ? $channel["exclude"] : "", STATE_GETPLAYLIST);
   }
 
   private function loadresource($apikey, $id, $directory, $exclude, $state) {
+    echo "> ${id} to ${directory}\n";
     // 初期処理
     $cdir = ROOT_DIR . $this->settings["content_dir"] . $directory;
     $cachedir = LOG_DIR . "youtube/";
@@ -130,6 +133,7 @@ class Pico_YoutubeList {
           throw new Exception("Unsupported State");
         }
         
+        echo "${title}:${description}\n";
         $iframecode = sprintf(EMBEDCODE, $iframeurl);
         // 非Publicなもの、説明文が空なものは公開しない
         if($j["status"]["privacyStatus"] != "public" || empty($description)) continue;
@@ -147,6 +151,7 @@ class Pico_YoutubeList {
 
         file_put_contents($cdir . $j["id"] . ".md", $page);
       }
+      echo "\n\n";
     }catch(Exception $e){
       echo "Youtube Access Error\n";
       echo $e->getMessage() . "\n";
