@@ -40,7 +40,7 @@ class Pico_YoutubeList {
     $l = !empty($channels) ? array_merge($l, $channels) : $l;
     $l = !empty($playlists) ? array_merge($l, $playlists) : $l;
     foreach($l as $li){
-      $this->removeBeforeScanned(ROOT_DIR . $this->settings["content_dir"] . $li["directory"]);
+      $this->removeBeforeScanned($this->settings["content_dir"] . $li["directory"]);
     }
 
     // 動画の読み込み処理
@@ -82,7 +82,7 @@ class Pico_YoutubeList {
   private function loadresource($apikey, $id, $directory, $exclude, $state) {
     echo "> ${id} to ${directory}\n";
     // 初期処理
-    $cdir = ROOT_DIR . $this->settings["content_dir"] . $directory;
+    $cdir = $this->settings["content_dir"] . $directory;
     $cachedir = LOG_DIR . "youtube/";
     $cachefile = $cachedir . $id . ".json";
     $excludes = explode(",", $exclude);
