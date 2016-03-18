@@ -82,7 +82,7 @@ class Pico_YoutubeList {
   private function loadresource($apikey, $id, $directory, $exclude, $state) {
     echo "> ${id} to ${directory}\n";
     // 初期処理
-    $cdir = ROOT_DIR . $this->settings["content_dir"] . $directory;
+    $cdir = $this->settings["content_dir"] . $directory;
     $cachedir = LOG_DIR . "youtube/";
     $cachefile = $cachedir . $id . ".json";
     $excludes = explode(",", $exclude);
@@ -141,15 +141,15 @@ class Pico_YoutubeList {
         // 非Publicなもの、説明文が空なものは公開しない
         if($j["status"]["privacyStatus"] != "public" || empty($description)) continue;
         // mdファイル作成
-        $page = "/*\n";
-        $page .= sprintf("  Title: %s\n", $title);
-        $page .= sprintf("  Author: %s\n", $s["channelTitle"]);
-        $page .= sprintf("  Date: %s\n", $s["publishedAt"]);
-        $page .= sprintf("  Description: %s\n", str_replace(array("\n", "\r"), " ", $description));
-        $page .= sprintf("  URL: %s\n", $url);
-        $page .= sprintf("  Tag: %s\n", "embed");
-        $page .= sprintf("  Image: %s\n", $s["thumbnails"]["medium"]["url"]);
-        $page .= "*/\n";
+        $page = "---\n";
+        $page .= sprintf("Title: %s\n", $title);
+        $page .= sprintf("Author: %s\n", $s["channelTitle"]);
+        $page .= sprintf("Date: %s\n", $s["publishedAt"]);
+        $page .= sprintf("Description: %s\n", str_replace(array("\n", "\r"), " ", $description));
+        $page .= sprintf("URL: %s\n", $url);
+        $page .= sprintf("Tag: %s\n", "embed");
+        $page .= sprintf("Image: %s\n", $s["thumbnails"]["medium"]["url"]);
+        $page .= "---\n";
         $page .= $iframecode;
 
         file_put_contents($cdir . $j["id"] . ".md", $page);
