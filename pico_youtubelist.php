@@ -40,7 +40,7 @@ class Pico_YoutubeList {
     $l = !empty($channels) ? array_merge($l, $channels) : $l;
     $l = !empty($playlists) ? array_merge($l, $playlists) : $l;
     foreach($l as $li){
-      $this->removeBeforeScanned(ROOT_DIR . $this->settings["content_dir"] . $li["directory"]);
+      $this->removeBeforeScanned($this->settings["content_dir"] . $li["directory"]);
     }
 
     // 動画の読み込み処理
