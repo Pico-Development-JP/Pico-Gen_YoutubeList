@@ -86,6 +86,9 @@ class Pico_YoutubeList {
     $cachedir = LOG_DIR . "youtube/";
     $cachefile = $cachedir . $id . ".json";
     $excludes = explode(",", $exclude);
+    if(!file_exists($cdir)){
+      mkdir($cdir, "0500", true);
+    }
     if(!file_exists($cachedir)){
       mkdir($cachedir, "0500", true);
     }
