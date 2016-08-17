@@ -204,7 +204,7 @@ class Pico_YoutubeList {
     }
     if($handle = opendir($cdir)){
       while(false !== ($file = readdir($handle))){
-        if(!is_dir($file) && $file != "index.md"){
+        if(!is_dir($file) && !preg_match("/^((?!\.md$).|index\.md)*$/", $file)){
           unlink($cdir. "/" . $file);
         }
       }
